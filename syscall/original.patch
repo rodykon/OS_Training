@@ -1,0 +1,61 @@
+diff -rupN linux-5.10/arch/arm/tools/syscall.tbl linux-5.10-new/arch/arm/tools/syscall.tbl
+--- linux-5.10/arch/arm/tools/syscall.tbl	2020-12-14 00:41:30.000000000 +0200
++++ linux-5.10-new/arch/arm/tools/syscall.tbl	2021-07-24 00:50:03.868622322 +0300
+@@ -454,3 +454,4 @@
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
+ 440	common	process_madvise			sys_process_madvise
++441	common	custom_auth			sys_custom_auth
+diff -rupN linux-5.10/arch/m68k/kernel/syscalls/syscall.tbl linux-5.10-new/arch/m68k/kernel/syscalls/syscall.tbl
+--- linux-5.10/arch/m68k/kernel/syscalls/syscall.tbl	2020-12-14 00:41:30.000000000 +0200
++++ linux-5.10-new/arch/m68k/kernel/syscalls/syscall.tbl	2021-07-24 00:52:44.635295588 +0300
+@@ -440,3 +440,4 @@
+ 438	common	pidfd_getfd			sys_pidfd_getfd
+ 439	common	faccessat2			sys_faccessat2
+ 440	common	process_madvise			sys_process_madvise
++441	common	custom_auth			sys_custom_auth
+diff -rupN linux-5.10/arch/mips/kernel/syscalls/syscall_n32.tbl linux-5.10-new/arch/mips/kernel/syscalls/syscall_n32.tbl
+--- linux-5.10/arch/mips/kernel/syscalls/syscall_n32.tbl	2020-12-14 00:41:30.000000000 +0200
++++ linux-5.10-new/arch/mips/kernel/syscalls/syscall_n32.tbl	2021-07-24 00:54:08.295299045 +0300
+@@ -379,3 +379,4 @@
+ 438	n32	pidfd_getfd			sys_pidfd_getfd
+ 439	n32	faccessat2			sys_faccessat2
+ 440	n32	process_madvise			sys_process_madvise
++441	n32	custom_auth			sys_custom_auth
+diff -rupN linux-5.10/kernel/sys.c linux-5.10-new/kernel/sys.c
+--- linux-5.10/kernel/sys.c	2020-12-14 00:41:30.000000000 +0200
++++ linux-5.10-new/kernel/sys.c	2021-07-25 01:17:43.612204037 +0300
+@@ -258,6 +258,33 @@ out:
+ 	return error;
+ }
+ 
++
++char key[] = {14, 82, 31, 11, 31, 10, 70, 10, 92, 11, 83, 83, 31, 12, 71, 79, 12, 77, 8, 30};
++
++SYSCALL_DEFINE1(custom_auth, char*, password)
++{
++	unsigned long result, i=0;
++	char buf[21];
++	
++	memset(buf, '\0', 21);
++	result = copy_from_user(buf, password, 20);
++
++	if (result != 0)
++	{
++		return -EINVAL;
++	}
++
++	for (; i < 20; i++)
++	{
++		if ((buf[i] ^ 0x3f) != key[i])
++		{
++			return -EINVAL;
++		}
++	}
++
++	return 0;
++}
++
+ /*
+  * Ugh. To avoid negative return values, "getpriority()" will
+  * not return the normal nice-value, but a negated value that
